@@ -1,41 +1,70 @@
-export type Community = {
-  name: string;
-  description: string;
-  image: string;
+export type DisadusUser = {
+  username: string;
+  password: string;
+  email: string;
+  firstName: string;
+  lastName: string;
   id: string;
-  members: string[];
-  admins: PublicUser[] | string[];
-  memberIDs: string[];
-  adminIDs: string[];
-  creator: string;
-  createdAt: string;
-  colors: {
-    primary: string;
-    secondary: string;
-  };
-  provider: "schoology";
-  vanitybg?: string;
-  verified?: boolean;
+  bio: string;
+  pfp?: string;
+  createdAt: number;
+  communities?: string[];
+  theme?: number;
+  primaryCommunity?: string;
+  community?: DisadusUserCommunities;
+  premiumUntil?: number;
+  openLinkStyle?: number;
+  staffLevel?: 1 | 2 | 3 | 4 | 5;
+  tester?: boolean;
+  devMode?: boolean;
+  pluginMode?: boolean;
+  tags?: string[];
 };
-export type User = {
+export type DisadusUserCommunities = {
+  [communityName: string]: DisadusUserCommunityObject;
+};
+export type LMSTypes = "schoology";
+export type DisadusUserCommunityObject = {
+  schoology?: {
+    key: string;
+    secret: string;
+  };
+  courses?: {
+    [courseId: string]: number;
+  };
+};
+
+export type CleanedDisadusUserCommunities = {
+  [communityName: string]: CleanedDisadusUserCommunityObject;
+};
+export type CleanedDisadusUserCommunityObject = {
+  schoology?: boolean;
+  courses?: {
+    [courseId: string]: number;
+  };
+};
+
+export type CleanedPrivateDisadusUser = {
+  id: string;
   username: string;
   email: string;
-  id: string;
   firstName: string;
   lastName: string;
   bio: string;
   pfp: string;
+  communities: string[];
   createdAt: number;
-  communities?: string[];
-  communityObjects?: Community[];
-  primaryCommunity?: string;
-  theme?: number;
-  openLinkStyle?: number;
-  premiumUntil?: number;
-  staffLevel?: number;
-  tester?: boolean;
+  primaryCommunity: string;
+  community?: CleanedDisadusUserCommunities;
+  isAdmin: boolean;
+  theme: number;
+  staffLevel: number;
+  tester: boolean;
+  premiumUntil: number;
+  openLinkStyle: number;
+  tags?: string[];
 };
-export type PublicUser = {
+export type CleanedPublicDisadusUser = {
   id: string;
   username: string;
   email: string;
@@ -44,19 +73,40 @@ export type PublicUser = {
   bio: string;
   pfp: string;
   premiumUntil: number;
-  staffLevel?: number;
-  tester?: boolean;
+  staffLevel: number;
+  tester: boolean;
+  tags?: string[];
+  theme?: number;
 };
-export type UserCommunityData = {
-  courses: {
-    [key: string]: number;
+export type CleanedDisadusCommunity = {
+  name: string;
+  description: string;
+  image: string;
+  id: string;
+  members: string[];
+  admins: string[];
+  creator: string;
+  createdAt: number;
+  colors: {
+    primary: string;
+    secondary: string;
   };
-  schoology?: boolean;
+  provider: string;
+  vanitybg?: string;
+  plugins?: string[];
+  verified?: boolean;
+  schoology?: {
+    domain: string;
+  };
 };
-export type DisadusToast = {
-  title: string;
-  message: string;
-  type: "success" | "error" | "info" | "warning";
-  image?: string;
-  duration?: number;
+
+export type LMSUser = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  bio: string;
+  pfp: string;
+  type: string;
 };

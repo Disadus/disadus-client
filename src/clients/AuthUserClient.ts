@@ -1,8 +1,12 @@
 import { BaseClient } from "./BaseClient";
 import { io, Socket } from "socket.io-client";
 import { DisadusCredType } from "../types/CredType";
-import { PublicUser, User } from "../types/DisadusTypes";
 import nFetch from "../customFetch";
+import {
+  CleanedPrivateDisadusUser,
+  CleanedPublicDisadusUser,
+  DisadusUser,
+} from "../types/DisadusTypes";
 
 export class AuthUserClient extends BaseClient {
   // @ts-ignore
@@ -75,49 +79,61 @@ export class AuthUserClient extends BaseClient {
   async getUser(
     userid: string,
     filtered = true
-  ): Promise<PublicUser | User | null> {
+  ): Promise<CleanedPublicDisadusUser | DisadusUser | null> {
     if (filtered) {
-      if (this.socket) {
-        this.socket?.emit("getUser", userid, filtered);
+      if (this.internalSocket) {
+        this.internalSocket?.emit("_disadusRequest.user.@id", userid, filtered);
         return new Promise((resolve) => {
-          this.socket?.once("getUser", (user: PublicUser | null) => {
-            resolve(user);
-          });
+          const listener = (user: DisadusUser | null, userID: string) => {
+            if (userid === userID) {
+              resolve(user);
+              this.internalSocket?.off("_disadusResponse.user.@id", listener);
+            }
+          };
         });
       }
-      const userReq = await nFetch(`${this.apiURL}/user/${userid}`, {
-        headers: {
-          Authorization: this.getAuth(DisadusCredType.CLIENT)!,
-        },
-      });
+      // const userReq = await nFetch(`${this.apiURL}/user/${userid}`, {
+      //   headers: {
+      //     Authorization: this.getAuth(DisadusCredType.CLIENT)!,
+      //   },
+      // });
 
-      if (userReq.status === 200) {
-        return userReq.json();
-      }
-      return null;
+      // if (userReq.status === 200) {
+      //   return userReq.json();
+      // }
+      // return null;
     }
 
     if (!this.internalSocket) {
       throw new Error("Only internal clients can get non-filtered users");
     }
-    this.internalSocket?.emit("getUser", userid, filtered);
+    this.socket?.emit("_disadusRequest.user.@id", userid, filtered);
     return new Promise((resolve) => {
-      this.internalSocket?.once("getUser", (user: User | null) => {
-        resolve(user);
-      });
+      const listener = (
+        user: CleanedPublicDisadusUser | null,
+        userID: string
+      ) => {
+        if (userid === userID) {
+          resolve(user);
+          this.socket?.off("_disadusResponse.user.@id", listener);
+        }
+      };
     });
   }
   /**
    * Gets self from the API (only user clients can do this)
    */
-  async getSelf(): Promise<User | null> {
+  async getSelf(): Promise<CleanedPrivateDisadusUser | null> {
     if (this.getAuth(DisadusCredType.CLIENT)) {
       if (this.socket) {
-        this.socket?.emit("getSelf");
+        this.socket?.emit("_disadusRequest.user.@me");
         return new Promise((resolve) => {
-          this.socket?.once("getSelf", (user: User | null) => {
-            resolve(user);
-          });
+          this.socket?.once(
+            "_disadusResponse.user.@me",
+            (user: CleanedPrivateDisadusUser | null) => {
+              resolve(user);
+            }
+          );
         });
       }
       const selfReq = await nFetch(`${this.apiURL}/user/@me`, {
@@ -135,7 +151,9 @@ export class AuthUserClient extends BaseClient {
   /**
    * Updates self from the API, excludes certain fields (only user clients can do this)
    */
-  async updateSelf(user: Partial<User>): Promise<User | null> {
+  async updateSelf(
+    user: Partial<CleanedPrivateDisadusUser>
+  ): Promise<CleanedPrivateDisadusUser | null> {
     if (this.getAuth(DisadusCredType.CLIENT)) {
       const selfReq = await nFetch(`${this.apiURL}/user/@me`, {
         method: "PATCH",
@@ -156,23 +174,20 @@ export class AuthUserClient extends BaseClient {
   /**
    * Updates a user from the API, excludes certain fields (only internal clients can do this)
    */
-  async updateUser(user: Partial<User>): Promise<User | null> {
+  async updateUser(user: Partial<DisadusUser>): Promise<DisadusUser | null> {
     if (!user.id) throw new Error("User ID is required");
     if (this.internalSocket) {
       this.internalSocket?.emit("updateUser", user);
       return new Promise((resolve) => {
-        const listener = (user: User | null, userID: string) => {
+        const listener = (user: DisadusUser | null, userID: string) => {
           if (user?.id === userID) {
             resolve(user);
             this.internalSocket?.off("updateUser", listener);
           }
         };
         this.internalSocket?.on("updateUser", listener);
-      }) as Promise<User | null>;
+      }) as Promise<DisadusUser | null>;
     }
     throw new Error("Not authorized");
   }
-  //   /**
-  //    * Updates
-  //    */
 }
